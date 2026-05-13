@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'payment_events')]
@@ -16,8 +17,8 @@ class PaymentEvent
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: Types::GUID, unique: true)]
-    private string $eventId;
+    #[ORM\Column(type: 'uuid', unique: true)]
+    private Uuid $eventId;
 
     #[ORM\Column(length: 255)]
     private string $type;
@@ -32,17 +33,29 @@ class PaymentEvent
     private \DateTimeImmutable $createdAt;
 
     public function __construct(
-        string $eventId,
+        Uuid $eventId,
         string $type,
         string $paymentId,
         array $payload,
-        ?\DateTimeImmutable $createdAt = null,
     ) {
         $this->eventId = $eventId;
         $this->type = $type;
         $this->paymentId = $paymentId;
         $this->payload = $payload;
-        $this->createdAt = $createdAt ?? new \DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public static function create(
+        string $type,
+        string $paymentId,
+        array $payload,
+    ): self {
+        return new self(
+            Uuid::v4(),
+            $type,
+            $paymentId,
+            $payload
+        );
     }
 
     public function getId(): ?int
@@ -50,7 +63,7 @@ class PaymentEvent
         return $this->id;
     }
 
-    public function getEventId(): string
+    public function getEventId(): Uuid
     {
         return $this->eventId;
     }
