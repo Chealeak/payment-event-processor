@@ -2,19 +2,19 @@
 
 namespace App\Controller;
 
-use App\Entity\PaymentEvent;
+use App\Service\PaymentEventService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class PaymentEventController extends AbstractController
 {
     #[Route('/api/payment-events', methods: ['POST'])]
-    public function index(
+    public function __invoke(
         Request $request,
-        EntityManagerInterface $em
+        PaymentEventService $paymentEventService
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -22,17 +22,26 @@ final class PaymentEventController extends AbstractController
         if (!is_array($data)) {
             return $this->json(['message' => 'Invalid request data'], 400);
         }
+        
+        foreach (['eventId', 'type', 'paymentId', 'payload'] as $field) {
+            if (!isset($data[$field])) {
+                return $this->json([
+                    'message' => sprintf('Missing field: %s', $field)
+                ], 400);
+            }
+        }
 
-        $paymentEvent = new PaymentEvent(
-            $data['eventId'],
+        $created = $paymentEventService->ingest(
+            Uuid::fromString($data['eventId']),
             $data['type'],
             $data['paymentId'],
             $data['payload'],
         );
 
-        $em->persist($paymentEvent);
-        $em->flush();
+        if (!$created) {
+            return $this->json(['message' => 'Event already processed'], 400);
+        }
 
-        return $this->json(['message' => 'Payment event created'], 201);
+        return $this->json(['message' => 'Event created'], 201);
     }
 }
