@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Repository\PaymentEventRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PaymentEventRepository::class)]
 #[ORM\Table(name: 'payment_events')]
 class PaymentEvent
 {
@@ -43,19 +44,6 @@ class PaymentEvent
         $this->paymentId = $paymentId;
         $this->payload = $payload;
         $this->createdAt = new \DateTimeImmutable();
-    }
-
-    public static function create(
-        string $type,
-        string $paymentId,
-        array $payload,
-    ): self {
-        return new self(
-            Uuid::v4(),
-            $type,
-            $paymentId,
-            $payload
-        );
     }
 
     public function getId(): ?int
