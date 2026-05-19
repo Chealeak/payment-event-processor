@@ -34,3 +34,11 @@ services:
     ports:
       - "5432"
 ###< doctrine/doctrine-bundle ###
+
+###> rabbitmq ###
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+###< rabbitmq ###

@@ -73,9 +73,15 @@ RUN <<-EOF
 		ipset \
 		iptables \
 		jq \
-		sudo
-	install-php-extensions xdebug
+		sudo \
+		librabbitmq-dev
+
+	install-php-extensions \
+		xdebug \
+		amqp
+
 	rm -rf /var/lib/apt/lists/*
+
 	useradd -m -s /bin/bash nonroot
 	echo "nonroot ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/nonroot
 	git config --system --add safe.directory /app
