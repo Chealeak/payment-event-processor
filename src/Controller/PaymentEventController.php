@@ -39,7 +39,7 @@ final class PaymentEventController extends AbstractController
         );
 
         if (!$created) {
-            return $this->json(['message' => 'Event already processed'], 400);
+            return $this->json(['message' => 'Event already exists'], 409);
         }
 
         return $this->json(['message' => 'Event created'], 201);

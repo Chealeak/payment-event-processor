@@ -5,22 +5,29 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Message\PaymentEventMessage;
+use App\Repository\OutboxEventRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 class PaymentEventHandler
 {
+    public function __construct(
+        private readonly OutboxEventRepository $outboxEventRepository,
+        private readonly EntityManagerInterface $em,
+    ) {}
+
     public function __invoke(PaymentEventMessage $message): void
     {
-        // TODO: Implement the logic to handle the payment event
+        $outbox = $this->outboxEventRepository->findOneByEventId($message->eventId);
 
-        file_put_contents(
-            'var/log/payment_events.log',
-            json_encode([
-                'eventId' => (string) $message->eventId,
-                'type' => $message->type,
-            ]) . PHP_EOL,
-            FILE_APPEND
-        );
+        if ($outbox === null || $outbox->isProcessed()) {
+            return;
+        }
+
+        // TODO: handle the event
+
+        $outbox->markProcessed();
+        $this->em->flush();
     }
 }

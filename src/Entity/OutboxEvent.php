@@ -17,7 +17,7 @@ class OutboxEvent
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'uuid')]
+    #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $eventId;
 
     #[ORM\Column(length: 255)]
@@ -28,6 +28,9 @@ class OutboxEvent
 
     #[ORM\Column]
     private bool $processed = false;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $dispatchedAt = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
@@ -72,7 +75,17 @@ class OutboxEvent
     {
         return $this->createdAt;
     }
-    
+
+    public function getDispatchedAt(): ?\DateTimeImmutable
+    {
+        return $this->dispatchedAt;
+    }
+
+    public function markDispatched(): void
+    {
+        $this->dispatchedAt = new \DateTimeImmutable();
+    }
+
     public function markProcessed(): void
     {
         $this->processed = true;

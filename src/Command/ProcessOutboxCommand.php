@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Command;
 
+use App\Message\PaymentEventMessage;
+use App\Repository\OutboxEventRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use App\Repository\OutboxEventRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use App\Message\PaymentEventMessage;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsCommand(
     name: 'app:process-outbox',
-    description: 'Process outbox events',
+    description: 'Dispatch pending outbox events to the message bus',
 )]
 class ProcessOutboxCommand extends Command
 {
@@ -27,8 +29,8 @@ class ProcessOutboxCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $events = $this->repo->findUnprocessed(50);
-    
+        $events = $this->repo->findPendingDispatch(50);
+
         foreach ($events as $event) {
             $this->bus->dispatch(
                 new PaymentEventMessage(
@@ -38,12 +40,11 @@ class ProcessOutboxCommand extends Command
                     $event->getPayload()['payload'],
                 )
             );
-    
-            $event->markProcessed();
+
+            $event->markDispatched();
+            $this->em->flush();
         }
-    
-        $this->em->flush();
-    
+
         return Command::SUCCESS;
     }
 }
