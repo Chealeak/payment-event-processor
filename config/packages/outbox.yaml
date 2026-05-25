@@ -1,0 +1,4 @@
+parameters:
+    app.outbox.batch_size: '%env(int:OUTBOX_BATCH_SIZE)%'
+    app.outbox.stale_after_seconds: '%env(int:OUTBOX_STALE_AFTER_SECONDS)%'
+    app.outbox.poll_interval_seconds: '%env(int:OUTBOX_POLL_INTERVAL_SECONDS)%'

@@ -1,5 +1,26 @@
 ---
 # Development environment override
+x-php-worker: &php-worker
+  image: ${IMAGES_PREFIX:-}app-php-dev
+  build:
+    context: .
+    target: frankenphp_dev
+  volumes:
+    - ./:/app
+    - ./frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
+    - ./frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
+    - /app/var
+  environment:
+    APP_ENV: "${APP_ENV:-dev}"
+    DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-15}&charset=${POSTGRES_CHARSET:-utf8}
+    MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-amqp://guest:guest@rabbitmq:5672/%2f/messages}
+  depends_on:
+    database:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  restart: unless-stopped
+
 services:
   php:
     image: ${IMAGES_PREFIX:-}app-php-dev
@@ -26,6 +47,11 @@ services:
       # Ensure that host.docker.internal is correctly defined on Linux
       - host.docker.internal:host-gateway
     tty: true
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 ###> symfony/mercure-bundle ###
 ###< symfony/mercure-bundle ###
 
@@ -41,4 +67,20 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 ###< rabbitmq ###
+
+###> symfony/messenger-workers ###
+  messenger-worker:
+    <<: *php-worker
+    command: ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=128M", "-vv"]
+
+  outbox-worker:
+    <<: *php-worker
+    command: ["php", "bin/console", "app:process-outbox", "--watch"]
+###< symfony/messenger-workers ###
